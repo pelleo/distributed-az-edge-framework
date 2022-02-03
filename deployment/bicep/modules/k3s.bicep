@@ -478,6 +478,10 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
       }
     }
   }
+  dependsOn: [
+    lb
+    publicIP
+  ]
 }
 
 // Create storage account
