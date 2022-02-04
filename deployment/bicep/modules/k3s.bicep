@@ -63,14 +63,22 @@ var serviceEndpoints  = [
 @description('Name of VM public IP resource')
 var publicIPAddressName = '${vmName}-public-ip'
 
-//@description('Name of load balancer public IP resource')
-//var lbPublicIPAddressName = '${lbName}-public-ip'
+@description('Name of load balancer public IP resource')
+var lbPublicIPAddressName = '${lbName}-public-ip'
 
-//@description('Name of load balancer frontent IP')
-//var lbFeIPAddressName = '${lbName}-fe-ip'
+//@description('Name of load balancer outbounda public IP resource')
+//var lbFeIPAddressOutboundName = '${lbName}-outbound-public-ip'
 
-//@description('Name of load balancer backend pool')
-//var lbBePoolName = '${lbName}-be-pool'
+@description('Name of load balancer frontent IP')
+var lbFeIPAddressName = '${lbName}-fe-ip'
+
+@description('Name of load balancer outbound-frontent IP')
+var lbFeIPAddressOutboundName = '${lbName}-outbound-fe-ip'
+
+@description('Name of load balancer backend pool')
+var lbBePoolName = '${lbName}-be-pool'
+
+var lbBePoolNameOutbound = '${lbName}-outbound-be-pool'
 
 @description('Name of virtual NIC')
 var networkInterfaceName = '${vmName}-nic'
@@ -258,107 +266,137 @@ resource publicIP 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
   }
 }
 
-// resource lbPublicIP 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
-//   name: lbPublicIPAddressName
-//   location: location
-//   tags: tags
-//   properties: {
-//     publicIPAllocationMethod: 'Static'
-//     publicIPAddressVersion: 'IPv4'
-//     idleTimeoutInMinutes: 4
-//   }
-//   sku: {
-//     name: 'Standard'
-//   }
-// }
+resource lbPublicIPAddress 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
+  name: lbPublicIPAddressName
+  location: location
+  tags: tags
+  properties: {
+    publicIPAllocationMethod: 'Static'
+    publicIPAddressVersion: 'IPv4'
+    idleTimeoutInMinutes: 4
+  }
+  sku: {
+    name: 'Standard'
+  }
+}
 
-// resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
-//   name: lbName
-//   location: location
-//   sku:{
-//     name: 'Standard'
-//   }
-//   tags: tags
-//   properties: {
-//     frontendIPConfigurations: [
-//       {
-//         name:  lbFeIPAddressName
-//         properties: {
-//           publicIPAddress: {
-//             id: publicIP.id
-//           }
-//         }
-//       }
-//     ]
-//     backendAddressPools: [
-//       {
-//         name: lbBePoolName
-//       }
-//     ]
-//     probes: [
-//       {
-//         name: 'ssh'
-//         properties: {
-//           protocol:  'Tcp'
-//           port: 22
-//         }
-//       }
-//       {
-//         name: 'web'
-//         properties: {
-//           protocol: 'Tcp'
-//           port: 80
-//         }
-//       }
-//     ]
-//     loadBalancingRules: [
-//       {
-//         name: 'ssh'
-//         properties: {
-//           backendPort: 22
-//           frontendPort: 22
-//           protocol: 'Tcp'
-//           frontendIPConfiguration: {
-//             id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressName)
-//           }
-//           backendAddressPool: {
-//             id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
-//           }
-//           probe: {
-//             id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'ssh')
-//           }
-//           enableFloatingIP: false
-//           idleTimeoutInMinutes: 15
-//           enableTcpReset: true
-//           loadDistribution: 'Default'
-//           disableOutboundSnat: true
-//         }
-//       }
-//       {
-//         name: 'web'
-//         properties: {
-//           backendPort: 80
-//           frontendPort: 80
-//           protocol: 'Tcp'
-//           frontendIPConfiguration: {
-//             id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressName)
-//           }
-//           backendAddressPool: {
-//             id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
-//           }
-//           probe: {
-//             id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'web')
-//           }
-//           enableFloatingIP: false
-//           idleTimeoutInMinutes: 15
-//           enableTcpReset: true
-//           loadDistribution: 'Default'
-//           disableOutboundSnat: true
-//         }
-//       }
-//     ]
-//   }
-// }
+resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
+  name: lbName
+  location: location
+  sku:{
+    name: 'Standard'
+  }
+  tags: tags
+  properties: {
+    frontendIPConfigurations: [
+      {
+        name:  lbFeIPAddressName
+        properties: {
+          publicIPAddress: {
+            id: publicIP.id
+          }
+        }
+      }
+      {
+        name: lbFeIPAddressOutboundName
+        properties: {
+          publicIPAddress: {
+            id: lbPublicIPAddress.id
+          }
+        }
+      }
+    ]
+    backendAddressPools: [
+      {
+        name: lbBePoolName
+      }
+      {
+        name: lbBePoolNameOutbound
+      }
+    ]
+    probes: [
+      {
+        name: 'ssh'
+        properties: {
+          protocol:  'Tcp'
+          port: 22
+        }
+      }
+      {
+        name: 'web'
+        properties: {
+          protocol: 'Tcp'
+          port: 80
+        }
+      }
+    ]
+    loadBalancingRules: [
+      {
+        name: 'ssh'
+        properties: {
+          backendPort: 22
+          frontendPort: 22
+          protocol: 'Tcp'
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressName)
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
+          }
+          probe: {
+            id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'ssh')
+          }
+          enableFloatingIP: false
+          idleTimeoutInMinutes: 15
+          enableTcpReset: true
+          loadDistribution: 'Default'
+          disableOutboundSnat: true
+        }
+      }
+      {
+        name: 'web'
+        properties: {
+          backendPort: 80
+          frontendPort: 80
+          protocol: 'Tcp'
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressName)
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
+          }
+          probe: {
+            id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'web')
+          }
+          enableFloatingIP: false
+          idleTimeoutInMinutes: 15
+          enableTcpReset: true
+          loadDistribution: 'Default'
+          disableOutboundSnat: true
+        }
+      }
+    ]
+    outboundRules: [
+      {
+        name: 'all'
+        properties: {
+          allocatedOutboundPorts: 10000
+          protocol: 'All'
+          enableTcpReset: false
+          idleTimeoutInMinutes: 15
+          frontendIPConfigurations: [
+            {
+              id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressOutboundName)
+            }
+          ]
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolNameOutbound)
+          }
+        }
+      }
+    ]
+  }
+}
 
 // // Create test NICs. TO BE REMOVED!!!
 // var count = 3
@@ -385,33 +423,7 @@ resource publicIP 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
 //   }
 // } ]
 
-// Create NIC with direct Internet access
-resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
-  name: networkInterfaceName
-  location: location
-  tags: tags
-  properties: {
-    ipConfigurations: [
-      {
-        name: 'ipconfig1'
-        properties: {
-          subnet: {
-            id: subnetRef
-          }
-          privateIPAllocationMethod: 'Dynamic'
-          publicIPAddress: {
-            id: publicIP.id
-          }
-        }
-      }
-    ]
-    networkSecurityGroup: {
-      id: nsg.id
-    }
-  }
-}
-
-// // Create NIC behind load balancer
+// // Create NIC with direct Internet access
 // resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
 //   name: networkInterfaceName
 //   location: location
@@ -425,7 +437,9 @@ resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
 //             id: subnetRef
 //           }
 //           privateIPAllocationMethod: 'Dynamic'
-//           loadBalancerBackendAddressPools: lb.properties.backendAddressPools
+//           publicIPAddress: {
+//             id: publicIP.id
+//           }
 //         }
 //       }
 //     ]
@@ -434,6 +448,30 @@ resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
 //     }
 //   }
 // }
+
+// Create NIC behind load balancer
+resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
+  name: networkInterfaceName
+  location: location
+  tags: tags
+  properties: {
+    ipConfigurations: [
+      {
+        name: 'ipconfig1'
+        properties: {
+          subnet: {
+            id: subnetRef
+          }
+          privateIPAllocationMethod: 'Dynamic'
+          loadBalancerBackendAddressPools: lb.properties.backendAddressPools
+        }
+      }
+    ]
+    networkSecurityGroup: {
+      id: nsg.id
+    }
+  }
+}
 
 // Create virtual machine
 resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
