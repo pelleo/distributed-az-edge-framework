@@ -7,6 +7,9 @@ targetScope = 'subscription'
 @description('The common name for this application')
 param applicationName string
 
+@description('Load balancer: yes/no')
+param lbDeployment string
+
 var applicationNameWithoutDashes = '${replace(applicationName,'-','')}'
 var resourceGroupName = 'rg-k3s-${applicationNameWithoutDashes}'
 //var k3sName = '${take('k3s-${applicationNameWithoutDashes}',20)}'
@@ -75,6 +78,7 @@ param sshRSAPublicKey string = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC8RNrV7L0M
 //param cloudInitScriptUri string = 'https://raw.githubusercontent.com/pelleo/Hybrid.IoTHub.Deployment/main/deployment/bicep/modules/create_cloud_init_input_string_bicep.sh'
 param cloudInitScriptUri string = 'https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/bicep/modules/create_cloud_init_input_string_bicep.sh'
 param k3sDnsLabelPrefix string = 'k3s'
+param k3sDnsLabelPrefixOutbound string = 'k3s-outbound'
 
 // VM info
 @description('The name of the Virtual Machine.')
@@ -130,7 +134,9 @@ module k3s 'modules/k3s.bicep' = {
     linuxAdminUsername: linuxAdminUsername
     sshRSAPublicKey: sshRSAPublicKey
     k3sDnsLabelPrefix: k3sDnsLabelPrefix
+    k3sDnsLabelPrefixOutbound : k3sDnsLabelPrefixOutbound 
     cloudInitScriptUri: cloudInitScriptUri
+    lbDeployment: lbDeployment
     tags: tags
   }
 }

@@ -26,7 +26,8 @@ function usage() {
 
     Options:
     
-    -L  Azure region (westeurope)
+    -r  Azure region (westeurope)
+    -l  Azure load balancer (no)
     -h  Print this information
 
     See also:
@@ -65,10 +66,13 @@ cd ${work_dir}
 #
 ################################################################
 
-while getopts ":L:h" opt; do
+while getopts ":r:l:h" opt; do
     case ${opt} in
-        L)        
+        r)        
             location=${OPTARG}
+            ;;
+        l)        
+            lb_deployment=${OPTARG}
             ;;
         h)
             usage
@@ -90,6 +94,7 @@ shift $((OPTIND - 1))
 
 # Assign default values to unassigned options.
 location=${location:=westeurope}
+lb_deployment=${lb_deployment:=no}
 
 # One mandatory argument.
 if [[ $# -eq 1 ]]; then 
@@ -117,9 +122,12 @@ start_time=$(date +%s)
 
 # ----- Deploy Bicep
 write_title "Deploy Bicep files"
-r=$(az deployment sub create --location ${location} \
-        --template-file ./bicep/k3s-infrastructure.bicep --parameters applicationName=${application_name} \
-        --name "dep-${deployment_id}" -o json)
+r=$(az deployment sub create \
+        --name "dep-${deployment_id}" -o json \
+        --location ${location} \
+        --template-file ./bicep/k3s-infrastructure.bicep \
+        --parameters applicationName=${application_name} \
+                     lbDeployment=${lb_deployment})
 
 echo $r | jq 
 

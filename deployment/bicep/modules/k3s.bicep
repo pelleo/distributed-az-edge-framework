@@ -1,10 +1,17 @@
+param location string
 param environmentType string
 param linuxAdminUsername string
 //@secure()
 param sshRSAPublicKey string
+
+@description('URI for cloud init script executed by bicep script resource')
 param cloudInitScriptUri string
+
+@description('DNS prefix for load balancer incoming traffic')
 param k3sDnsLabelPrefix string
-param location string
+
+@description('DNS prefix for load balancer outgoing traffic')
+param k3sDnsLabelPrefixOutbound  string
 
 @description('The name of the Virtual Machine.')
 param vmName string 
@@ -32,6 +39,12 @@ param storageAccountNamePrefix string
 
 param tags object
 
+@allowed([
+  'yes'
+  'no'
+])
+param lbDeployment string
+
 @description('Name of network security group')
 var nsgName = 'k3s-nsg'
 
@@ -47,12 +60,6 @@ var subnetName = 'k3s-snet'
 @description('Address space of subnet prefix')
 var subnetAddressPrefix  = '10.1.0.0/24'
 
-//@description('Address space of load balancer virtual network')
-//var lbSubnetName = 'k3s-lb-snet'
-
-//@description('Address space of load balancer subnet prefix')
-//var lbSubnetAddressPrefix  = '10.1.1.0/24'
-
 @description('List of service endpoints to be enabled on subnet' )
 var serviceEndpoints  = [
   {
@@ -64,21 +71,19 @@ var serviceEndpoints  = [
 var publicIPAddressName = '${vmName}-public-ip'
 
 @description('Name of load balancer public IP resource')
-var lbPublicIPAddressName = '${lbName}-public-ip'
+var publicIPAddressOutboundName = '${lbName}-public-ip'
 
-//@description('Name of load balancer outbounda public IP resource')
-//var lbFeIPAddressOutboundName = '${lbName}-outbound-public-ip'
 
 @description('Name of load balancer frontent IP')
-var lbFeIPAddressName = '${lbName}-fe-ip'
+var lbFeAddressName = '${lbName}-fe-ip'
 
-@description('Name of load balancer outbound-frontent IP')
-var lbFeIPAddressOutboundName = '${lbName}-outbound-fe-ip'
+//@description('Name of load balancer outbound-frontent IP')
+//var lbFeIPAddressOutboundName = '${lbName}-outbound-fe-ip'
 
 @description('Name of load balancer backend pool')
 var lbBePoolName = '${lbName}-be-pool'
 
-var lbBePoolNameOutbound = '${lbName}-outbound-be-pool'
+//var lbBePoolNameOutbound = '${lbName}-outbound-be-pool'
 
 @description('Name of virtual NIC')
 var networkInterfaceName = '${vmName}-nic'
@@ -103,6 +108,7 @@ var resourceNameSuffix  = uniqueString(resourceGroup().id)
 var storageAccountName = '${storageAccountNamePrefix}${resourceNameSuffix}'
 var nfs =  (fileShareType == 'NFS') ? true : false
 var domainNameLabel = '${k3sDnsLabelPrefix}-${resourceNameSuffix}'
+var domainNameLabelOutbound = '${k3sDnsLabelPrefixOutbound}-${resourceNameSuffix}'
 
 // Config data needed for dymanically created cloud-init config file.
 @description('Name of managed identity used when creating cloud-init.yaml dynmically')
@@ -122,6 +128,29 @@ var argocdReleaseName = 'argocd-demo'
 // This variable is only used for testing purpose to allow SSH through the load balancert.  
 // TO BE REMOVED
 var sourceIP = '81.229.112.35'
+
+var nicIpConfig = (lbDeployment == 'yes') ? {
+  name: 'lbIpConfig'
+  properties: {
+    subnet: {
+      id: subnetRef
+    }
+    privateIPAllocationMethod: 'Dynamic'
+    loadBalancerBackendAddressPools: lb.properties.backendAddressPools
+  }
+} : {
+  name: 'vmIpConfig1'
+  properties: {
+    subnet: {
+      id: subnetRef
+    }
+    privateIPAllocationMethod: 'Dynamic'
+    publicIPAddress: {
+      id: publicIPAddress.id
+    }
+  }
+}
+
 
 // Create virtual network
 resource vnet 'Microsoft.Network/virtualNetworks@2021-03-01' = {
@@ -148,18 +177,6 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2021-03-01' =  {
     privateLinkServiceNetworkPolicies: 'Enabled'
   }
 }
-
-// // Create load balancer subnet
-// resource lbSubnet 'Microsoft.Network/virtualNetworks/subnets@2021-03-01' =  {
-//   parent: vnet
-//   name: lbSubnetName
-//   properties: {
-//     addressPrefix: lbSubnetAddressPrefix
-//     serviceEndpoints: serviceEndpoints
-//     privateEndpointNetworkPolicies: 'Enabled'
-//     privateLinkServiceNetworkPolicies: 'Enabled'
-//   }
-// }
 
 // Create empty network security group
 resource nsg 'Microsoft.Network/networkSecurityGroups@2021-03-01' = {
@@ -188,99 +205,66 @@ resource sshRule 'Microsoft.Network/networkSecurityGroups/securityRules@2021-03-
   }
 }
 
-// Allow HTTP connections from anywhere
-resource httpRule 'Microsoft.Network/networkSecurityGroups/securityRules@2021-03-01' = {
-  name: 'HTTP'
-  parent: nsg
-  properties: {
-    protocol:  'Tcp'
-    sourcePortRange:  '*'
-    destinationPortRange:  '80'
-    sourceAddressPrefix:  '*'
-    destinationAddressPrefix:  '*'
-    access:  'Allow'
-    priority: 110
-    direction:  'Inbound'
-    sourcePortRanges: []
-    destinationPortRanges: []
-    sourceAddressPrefixes: []
-    destinationAddressPrefixes: []
-  }
-}
-
-// Allow HTTPS connections from anywhere
-resource httpsRule 'Microsoft.Network/networkSecurityGroups/securityRules@2021-03-01' = {
-  name: 'HTTPS'
-  parent: nsg
-  properties: {
-    protocol:  'Tcp'
-    sourcePortRange:  '*'
-    destinationPortRange:  '443'
-    sourceAddressPrefix:  '*'
-    destinationAddressPrefix:  '*'
-    access:  'Allow'
-    priority: 120
-    direction:  'Inbound'
-    sourcePortRanges: []
-    destinationPortRanges: []
-    sourceAddressPrefixes: []
-    destinationAddressPrefixes: []
-  }
-}
-
-// Allow kube API connections from anywhere
+// Allow kubectl connections from anywhere
 resource k8sRule 'Microsoft.Network/networkSecurityGroups/securityRules@2021-03-01' = {
   name: 'K8S'
   parent: nsg
   properties: {
     protocol:  'Tcp'
     sourcePortRange:  '*'
-    destinationPortRange:  '6443'
+    destinationPortRange: null
     sourceAddressPrefix:  '*'
     destinationAddressPrefix:  '*'
     access:  'Allow'
-    priority: 130
+    priority: 110
     direction:  'Inbound'
     sourcePortRanges: []
-    destinationPortRanges: []
+    destinationPortRanges: [
+      '80'
+      '443'
+      '6443'
+    ]
     sourceAddressPrefixes: []
     destinationAddressPrefixes: []
   }
 }
 
 // Create Public IP
-resource publicIP 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
+resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
   name: publicIPAddressName
   location: location
   tags: tags
   properties: {
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
+    idleTimeoutInMinutes: 4
     dnsSettings: {
       domainNameLabel: domainNameLabel
     }
-    idleTimeoutInMinutes: 4
   }
   sku: {
     name: 'Standard'
   }
 }
 
-resource lbPublicIPAddress 'Microsoft.Network/publicIPAddresses@2021-03-01' = {
-  name: lbPublicIPAddressName
+resource publicIPAddressOutbound 'Microsoft.Network/publicIPAddresses@2021-03-01' = if (lbDeployment == 'yes') {
+  name: publicIPAddressOutboundName
   location: location
   tags: tags
   properties: {
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
     idleTimeoutInMinutes: 4
+    dnsSettings: {
+      domainNameLabel: domainNameLabelOutbound
+    }
   }
   sku: {
     name: 'Standard'
   }
 }
 
-resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
+resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = if (lbDeployment == 'yes') {
   name: lbName
   location: location
   sku:{
@@ -290,29 +274,29 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
   properties: {
     frontendIPConfigurations: [
       {
-        name:  lbFeIPAddressName
+        name:  lbFeAddressName
         properties: {
           publicIPAddress: {
-            id: publicIP.id
+            id: publicIPAddress.id
           }
         }
       }
-      {
-        name: lbFeIPAddressOutboundName
-        properties: {
-          publicIPAddress: {
-            id: lbPublicIPAddress.id
-          }
-        }
-      }
+      // {
+      //   name: lbFeIPAddressOutboundName
+      //   properties: {
+      //     publicIPAddress: {
+      //       id: publicIPAddressOutbound.id
+      //     }
+      //   }
+      // }
     ]
     backendAddressPools: [
       {
         name: lbBePoolName
       }
-      {
-        name: lbBePoolNameOutbound
-      }
+      // {
+      //   name: lbBePoolNameOutbound
+      // }
     ]
     probes: [
       {
@@ -323,10 +307,24 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
         }
       }
       {
-        name: 'web'
+        name: 'http'
         properties: {
           protocol: 'Tcp'
           port: 80
+        }
+      }
+      {
+        name: 'https'
+        properties: {
+          protocol: 'Tcp'
+          port: 443
+        }
+      }
+      {
+        name: 'k8s'
+        properties: {
+          protocol: 'Tcp'
+          port: 6443
         }
       }
     ]
@@ -338,7 +336,7 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
           frontendPort: 22
           protocol: 'Tcp'
           frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressName)
+            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeAddressName)
           }
           backendAddressPool: {
             id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
@@ -354,19 +352,63 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
         }
       }
       {
-        name: 'web'
+        name: 'http'
         properties: {
           backendPort: 80
           frontendPort: 80
           protocol: 'Tcp'
           frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressName)
+            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeAddressName)
           }
           backendAddressPool: {
             id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
           }
           probe: {
-            id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'web')
+            id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'http')
+          }
+          enableFloatingIP: false
+          idleTimeoutInMinutes: 15
+          enableTcpReset: true
+          loadDistribution: 'Default'
+          disableOutboundSnat: true
+        }
+      }
+      {
+        name: 'https'
+        properties: {
+          backendPort: 443
+          frontendPort: 443
+          protocol: 'Tcp'
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeAddressName)
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
+          }
+          probe: {
+            id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'https')
+          }
+          enableFloatingIP: false
+          idleTimeoutInMinutes: 15
+          enableTcpReset: true
+          loadDistribution: 'Default'
+          disableOutboundSnat: true
+        }
+      }
+      {
+        name: 'k8s'
+        properties: {
+          backendPort: 6443
+          frontendPort: 6443
+          protocol: 'Tcp'
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeAddressName)
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
+          }
+          probe: {
+            id: resourceId('Microsoft.Network/loadBalancers/probes', lbName, 'k8s')
           }
           enableFloatingIP: false
           idleTimeoutInMinutes: 15
@@ -386,11 +428,12 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
           idleTimeoutInMinutes: 15
           frontendIPConfigurations: [
             {
-              id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressOutboundName)
+              //id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeIPAddressOutboundName)
+              id: resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', lbName, lbFeAddressName)
             }
           ]
           backendAddressPool: {
-            id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolNameOutbound)
+            id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools', lbName, lbBePoolName)
           }
         }
       }
@@ -438,7 +481,7 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
 //           }
 //           privateIPAllocationMethod: 'Dynamic'
 //           publicIPAddress: {
-//             id: publicIP.id
+//             id: publicIPAddress.id
 //           }
 //         }
 //       }
@@ -449,23 +492,37 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
 //   }
 // }
 
-// Create NIC behind load balancer
+// // Create NIC behind load balancer
+// resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
+//   name: networkInterfaceName
+//   location: location
+//   tags: tags
+//   properties: {
+//     ipConfigurations: [
+//       {
+//         name: 'lbIpconfig'
+//         properties: {
+//           subnet: {
+//             id: subnetRef
+//           }
+//           privateIPAllocationMethod: 'Dynamic'
+//           loadBalancerBackendAddressPools: lb.properties.backendAddressPools
+//         }
+//       }
+//     ]
+//     networkSecurityGroup: {
+//       id: nsg.id
+//     }
+//   }
+// }
+
 resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
   name: networkInterfaceName
   location: location
   tags: tags
   properties: {
     ipConfigurations: [
-      {
-        name: 'ipconfig1'
-        properties: {
-          subnet: {
-            id: subnetRef
-          }
-          privateIPAllocationMethod: 'Dynamic'
-          loadBalancerBackendAddressPools: lb.properties.backendAddressPools
-        }
-      }
+      nicIpConfig
     ]
     networkSecurityGroup: {
       id: nsg.id
@@ -516,10 +573,6 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
       }
     }
   }
-  // dependsOn: [
-  //   lb
-  //   publicIP
-  // ]
 }
 
 // Create storage account
@@ -645,7 +698,7 @@ resource generateCloudInitDeploymentScript 'Microsoft.Resources/deploymentScript
       }
       {
         name: 'HOST_IP_ADDRESS_OR_FQDN'
-        value: publicIP.properties.dnsSettings.fqdn
+        value: publicIPAddress.properties.dnsSettings.fqdn
       }
     ]
     storageAccountSettings: {
@@ -660,5 +713,5 @@ resource generateCloudInitDeploymentScript 'Microsoft.Resources/deploymentScript
 }
 
 output cloudInitFileAsBase64 string = generateCloudInitDeploymentScript.properties.outputs.cloudInitFileAsBase64
-output fqdn string = publicIP.properties.dnsSettings.fqdn
+output fqdn string = publicIPAddress.properties.dnsSettings.fqdn
 output miId string = miId
