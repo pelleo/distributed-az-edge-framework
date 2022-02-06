@@ -565,7 +565,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' =  [for i in range(0,
       ]
     }
     osProfile: {
-      computerName: 'vmNamePrefix${(i)}'
+      computerName: '${vmNamePrefix}${(i)}'
       adminUsername: linuxAdminUsername
       //adminPassword: adminPasswordOrKey
       linuxConfiguration: linuxConfiguration
