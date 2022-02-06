@@ -82,8 +82,10 @@ param k3sDnsLabelPrefixOutbound string = 'k3s-outbound'
 
 // VM info
 @description('The name of the Virtual Machine.')
-param vmName string = 'k3s-host'
+param vmNamePrefix string = 'k3s-host'
+param networkInterfaceNamePrefix string = 'k3s-nic'
 
+param vmCount int
 @description('Size of virtual machine.')
 param vmSize string = 'standard_d4s_v3'
 
@@ -124,7 +126,9 @@ module k3s 'modules/k3s.bicep' = {
   scope: resourceGroup(rg.name)
   params: {
     location: location
-    vmName: vmName
+    vmNamePrefix: vmNamePrefix
+    networkInterfaceNamePrefix: networkInterfaceNamePrefix
+    vmCount: vmCount
     vmSize: vmSize
     lbName: lbName
     storageAccountNamePrefix: storageAccountNamePrefix

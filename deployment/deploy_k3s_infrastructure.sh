@@ -28,6 +28,8 @@ function usage() {
     
     -r  Azure region (westeurope)
     -l  Azure load balancer (no)
+    -n  Number of cluster nodes (1)
+    -u  Cloud-init script URI.  Must point to a public repository
     -h  Print this information
 
     See also:
@@ -66,7 +68,7 @@ cd ${work_dir}
 #
 ################################################################
 
-while getopts ":r:l:h" opt; do
+while getopts ":r:l:n:u:h" opt; do
     case ${opt} in
         r)        
             location=${OPTARG}
@@ -74,6 +76,12 @@ while getopts ":r:l:h" opt; do
         l)        
             lb_deployment=${OPTARG}
             ;;
+        n)
+            vm_count=${OPTARG}
+            }}
+        u)
+            cloud_init_script_uri=${OPTARG}
+            }}
         h)
             usage
             exit
@@ -95,6 +103,8 @@ shift $((OPTIND - 1))
 # Assign default values to unassigned options.
 location=${location:=westeurope}
 lb_deployment=${lb_deployment:=no}
+vm_count=${vm_count:=1}
+cloud_init_script_uri=${script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/bicep/modules/create_cloud_init_input_string_bicep.sh}
 
 # One mandatory argument.
 if [[ $# -eq 1 ]]; then 
@@ -127,7 +137,9 @@ r=$(az deployment sub create \
         --location ${location} \
         --template-file ./bicep/k3s-infrastructure.bicep \
         --parameters applicationName=${application_name} \
-                     lbDeployment=${lb_deployment})
+                     lbDeployment=${lb_deployment} \
+                     vmCount=${vm_count} \
+                     cloudInitScriptUri=${cloud_init_script_uri})
 
 echo $r | jq 
 

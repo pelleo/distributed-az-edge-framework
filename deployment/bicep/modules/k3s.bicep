@@ -13,8 +13,14 @@ param k3sDnsLabelPrefix string
 @description('DNS prefix for load balancer outgoing traffic')
 param k3sDnsLabelPrefixOutbound  string
 
-@description('The name of the Virtual Machine.')
-param vmName string 
+@description('K3s cluster node name prefix')
+param vmNamePrefix string 
+
+@description('K3s cluster NIC prefix')
+param  networkInterfaceNamePrefix string
+
+@description('Number of virtual machines to be deployed.')
+param vmCount int 
 
 @description('Size of virtual machine.')
 param vmSize string
@@ -68,7 +74,7 @@ var serviceEndpoints  = [
 ]
 
 @description('Name of VM public IP resource')
-var publicIPAddressName = '${vmName}-public-ip'
+var publicIPAddressName = '${vmNamePrefix}-public-ip'
 
 @description('Name of load balancer public IP resource')
 var publicIPAddressOutboundName = '${lbName}-public-ip'
@@ -85,8 +91,6 @@ var lbBePoolName = '${lbName}-be-pool'
 
 //var lbBePoolNameOutbound = '${lbName}-outbound-be-pool'
 
-@description('Name of virtual NIC')
-var networkInterfaceName = '${vmName}-nic'
 var subnetRef = '${vnet.id}/subnets/${subnetName}'
 var osDiskType = 'Standard_LRS'
 
@@ -516,8 +520,8 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = if (lbDeployment == '
 //   }
 // }
 
-resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
-  name: networkInterfaceName
+resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' =  [for i in range(0, vmCount): {
+  name: '${networkInterfaceNamePrefix}${(i + 1)}'
   location: location
   tags: tags
   properties: {
@@ -528,11 +532,11 @@ resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
       id: nsg.id
     }
   }
-}
+} ]
 
 // Create virtual machine
-resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
-  name: vmName
+resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' =  [for i in range(0, vmCount): {
+  name: '${vmNamePrefix}${(i)}'
   location: location
   tags: tags
   properties: {
@@ -556,12 +560,12 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
     networkProfile: {
       networkInterfaces: [
         {
-          id: nic.id
+          id: nic[i].id
         }
       ]
     }
     osProfile: {
-      computerName: vmName
+      computerName: 'vmNamePrefix${(i)}'
       adminUsername: linuxAdminUsername
       //adminPassword: adminPasswordOrKey
       linuxConfiguration: linuxConfiguration
@@ -573,7 +577,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
       }
     }
   }
-}
+} ]
 
 // Create storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
