@@ -536,7 +536,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' =  [for i in range
 
 // Create virtual machine
 resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' =  [for i in range(0, vmCount): {
-  name: '${vmNamePrefix}${(i)}'
+  name: '${vmNamePrefix}${(i + 1)}'
   location: location
   tags: tags
   properties: {

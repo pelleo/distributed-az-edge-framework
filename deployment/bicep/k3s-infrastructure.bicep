@@ -89,7 +89,7 @@ param dnsLabelPrefixOutbound string = '${resourcePrefix}-outbound'
 // VM info
 @description('The name of the Virtual Machine.')
 param vmNamePrefix string = '${resourcePrefix}-host'
-param networkInterfaceNamePrefix string = '${resourcePrefix}nic'
+param networkInterfaceNamePrefix string = '${resourcePrefix}-nic'
 
 param vmCount int
 @description('Size of virtual machine.')
