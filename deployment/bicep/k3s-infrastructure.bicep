@@ -75,8 +75,7 @@ param environmentType string = 'dev'
 param linuxAdminUsername string = 'adminuser'
 //@secure()
 param sshRSAPublicKey string = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC8RNrV7L0MvmkqTi8BELkTx6zb0BwNOo+sqorHRd/XdJj/bnEcVBKTcfVFxYYwljtqhKTUUGzAubRNpcFQkQ+uv8fRdEvjDJnIetk1nDXt7bGp5ZWW4t1dUbdmFSMYa4xUC4d6cwKn6c7Ft4D2zZLkJ2w9iz9LHyno8d+X3xYwUdsuJEUy+3SDvdUoigen5tsxSVXkveNYlitETgASyswxEq22FhEwhdeOu7RtCyL8sLClXyax2RJM/fkd9k2UPhqClXSR0CQZ+LVwo9ak5jTkW0iwokXq2YBaXsiGTIFP4OLVEU+tvGAvewgJxTN6+yykCkjqKR0I57lc6zTCWUdCjcoRkUwel/16MR4vo7b2BqGv2/QJMWx9TqXDH4EqhvcKXwaWMTfmgCbdEGDlZ0di4maLztHm19opVY+UpQxh/mutOnrPYVeQfaKiNOImLXdISDvU3n6hBH/JDHl3iTID+KPZEm/ao4JUoc3sLfaD/QDrqDBKCp1thLJjhMkDP52f+IexNVqfBTlrDTW1Exuq0w0jrVA7firvBaW6/fB6lz70F46CT0y47k2ttV1ChknALlf9s+4czRSRY1qzCidIuF5epIumbKHR2kMrTF5XUV6X3/z1yRRCHJKMq4ibMfN/1zErCeh47EFynrA9E5/7wNUV4GfhcpIMgi14IPh0PQ== pelleo@pelleopc'
-//param cloudInitScriptUri string = 'https://raw.githubusercontent.com/pelleo/Hybrid.IoTHub.Deployment/main/deployment/bicep/modules/create_cloud_init_input_string_bicep.sh'
-param cloudInitScriptUri string = 'https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/bicep/modules/create_cloud_init_input_string_bicep.sh'
+param cloudInitScriptUri string
 param k3sDnsLabelPrefix string = 'k3s'
 param k3sDnsLabelPrefixOutbound string = 'k3s-outbound'
 

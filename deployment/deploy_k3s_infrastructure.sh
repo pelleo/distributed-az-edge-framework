@@ -78,10 +78,10 @@ while getopts ":r:l:n:u:h" opt; do
             ;;
         n)
             vm_count=${OPTARG}
-            }}
+            ;;
         u)
             cloud_init_script_uri=${OPTARG}
-            }}
+            ;;
         h)
             usage
             exit
