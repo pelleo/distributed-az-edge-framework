@@ -42,8 +42,6 @@ runcmd:
   - npm init
   - npm install express -y
   - nodejs index.js
-final_message: >
-    Run az network public-ip show to obtain IP address of load balancer.  Open web browser to test functionality
 EOSTR
 )
 
