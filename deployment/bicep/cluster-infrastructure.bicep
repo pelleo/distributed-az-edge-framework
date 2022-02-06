@@ -87,10 +87,6 @@ param dnsLabelPrefix string = resourcePrefix
 param dnsLabelPrefixOutbound string = '${resourcePrefix}-outbound'
 
 // VM info
-@description('The name of the Virtual Machine.')
-param vmNamePrefix string = '${resourcePrefix}-host'
-param networkInterfaceNamePrefix string = '${resourcePrefix}-nic'
-
 param vmCount int
 @description('Size of virtual machine.')
 param vmSize string = 'standard_d4s_v3'
@@ -127,13 +123,12 @@ resource rg 'Microsoft.Resources/resourceGroups@2020-10-01' = {
   location: location
 }
 
-module k3s 'modules/k3s.bicep' = {
+module cluster 'modules/cluster.bicep' = {
   name: '${resourcePrefix}Deployment'
   scope: resourceGroup(rg.name)
   params: {
     location: location
-    vmNamePrefix: vmNamePrefix
-    networkInterfaceNamePrefix: networkInterfaceNamePrefix
+    resourcePrefix: resourcePrefix
     vmCount: vmCount
     vmSize: vmSize
     lbName: lbName
@@ -143,8 +138,8 @@ module k3s 'modules/k3s.bicep' = {
     environmentType: environmentType
     linuxAdminUsername: linuxAdminUsername
     sshRSAPublicKey: sshRSAPublicKey
-    k3sDnsLabelPrefix: dnsLabelPrefix
-    k3sDnsLabelPrefixOutbound : dnsLabelPrefixOutbound 
+    dnsLabelPrefix: dnsLabelPrefix
+    dnsLabelPrefixOutbound : dnsLabelPrefixOutbound 
     cloudInitScriptUri: cloudInitScriptUri
     lbDeployment: lbDeployment
     tags: tags
@@ -154,5 +149,5 @@ module k3s 'modules/k3s.bicep' = {
 // TODO: modify
 //output aksName string = aks.outputs.aksName
 //output clusterPrincipalID string = aks.outputs.clusterPrincipalID
-output clusterFqdn string = k3s.outputs.fqdn
+output clusterFqdn string = cluster.outputs.fqdn
 output resourceGroupName string = rg.name

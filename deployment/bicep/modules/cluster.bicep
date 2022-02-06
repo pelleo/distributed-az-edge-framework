@@ -8,16 +8,12 @@ param sshRSAPublicKey string
 param cloudInitScriptUri string
 
 @description('DNS prefix for load balancer incoming traffic')
-param k3sDnsLabelPrefix string
+param dnsLabelPrefix string
 
 @description('DNS prefix for load balancer outgoing traffic')
-param k3sDnsLabelPrefixOutbound  string
+param dnsLabelPrefixOutbound  string
 
-@description('K3s cluster node name prefix')
-param vmNamePrefix string 
-
-@description('K3s cluster NIC prefix')
-param  networkInterfaceNamePrefix string
+param resourcePrefix string
 
 @description('Number of virtual machines to be deployed.')
 param vmCount int 
@@ -52,16 +48,16 @@ param tags object
 param lbDeployment string
 
 @description('Name of network security group')
-var nsgName = 'k3s-nsg'
+var nsgName = '${resourcePrefix}-nsg'
 
 @description('Name of virtual network')
-var vnetName  = 'k3s-vnet'
+var vnetName  = '${resourcePrefix}vnet'
 
 @description('Address space of virtual network')
 var vnetAddressPrefix = '10.1.0.0/16'
 
 @description('Name of subnet')
-var subnetName = 'k3s-snet'
+var subnetName = '${resourcePrefix}-snet'
 
 @description('Address space of subnet prefix')
 var subnetAddressPrefix  = '10.1.0.0/24'
@@ -72,6 +68,9 @@ var serviceEndpoints  = [
     service: 'Microsoft.Storage'
   }
 ]
+
+var vmNamePrefix = '${resourcePrefix}-host'
+var networkInterfaceNamePrefix = '${resourcePrefix}-nic'
 
 @description('Name of VM public IP resource')
 var publicIPAddressName = '${vmNamePrefix}-public-ip'
@@ -111,8 +110,8 @@ var storageAccountSkuName = (environmentType == 'prod') ? 'Premium_ZRS' : 'Premi
 var resourceNameSuffix  = uniqueString(resourceGroup().id)
 var storageAccountName = '${storageAccountNamePrefix}${resourceNameSuffix}'
 var nfs =  (fileShareType == 'NFS') ? true : false
-var domainNameLabel = '${k3sDnsLabelPrefix}-${resourceNameSuffix}'
-var domainNameLabelOutbound = '${k3sDnsLabelPrefixOutbound}-${resourceNameSuffix}'
+var domainNameLabel = '${dnsLabelPrefix}-${resourceNameSuffix}'
+var domainNameLabelOutbound = '${dnsLabelPrefixOutbound}-${resourceNameSuffix}'
 
 // Config data needed for dymanically created cloud-init config file.
 @description('Name of managed identity used when creating cloud-init.yaml dynmically')
@@ -445,81 +444,6 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = if (lbDeployment == '
   }
 }
 
-// // Create test NICs. TO BE REMOVED!!!
-// var count = 3
-// resource nics 'Microsoft.Network/networkInterfaces@2021-03-01' = [for i in range(0, count): {
-//   name: 'nic${(i + 1)}'
-//   location: location
-//   tags: tags
-//   properties: {
-//     ipConfigurations: [
-//       {
-//         name: 'ipconfigLB'
-//         properties: {
-//           subnet: {
-//             id: subnetRef
-//           }
-//           privateIPAllocationMethod: 'Dynamic'
-//           loadBalancerBackendAddressPools: lb.properties.backendAddressPools
-//         }
-//       }
-//     ]
-//     networkSecurityGroup: {
-//       id: nsg.id
-//     }
-//   }
-// } ]
-
-// // Create NIC with direct Internet access
-// resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
-//   name: networkInterfaceName
-//   location: location
-//   tags: tags
-//   properties: {
-//     ipConfigurations: [
-//       {
-//         name: 'ipconfig1'
-//         properties: {
-//           subnet: {
-//             id: subnetRef
-//           }
-//           privateIPAllocationMethod: 'Dynamic'
-//           publicIPAddress: {
-//             id: publicIPAddress.id
-//           }
-//         }
-//       }
-//     ]
-//     networkSecurityGroup: {
-//       id: nsg.id
-//     }
-//   }
-// }
-
-// // Create NIC behind load balancer
-// resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' = {
-//   name: networkInterfaceName
-//   location: location
-//   tags: tags
-//   properties: {
-//     ipConfigurations: [
-//       {
-//         name: 'lbIpconfig'
-//         properties: {
-//           subnet: {
-//             id: subnetRef
-//           }
-//           privateIPAllocationMethod: 'Dynamic'
-//           loadBalancerBackendAddressPools: lb.properties.backendAddressPools
-//         }
-//       }
-//     ]
-//     networkSecurityGroup: {
-//       id: nsg.id
-//     }
-//   }
-// }
-
 resource nic 'Microsoft.Network/networkInterfaces@2021-03-01' =  [for i in range(0, vmCount): {
   name: '${networkInterfaceNamePrefix}${(i + 1)}'
   location: location
@@ -565,7 +489,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' =  [for i in range(0,
       ]
     }
     osProfile: {
-      computerName: '${vmNamePrefix}${(i)}'
+      computerName: '${vmNamePrefix}${(i + 1)}'
       adminUsername: linuxAdminUsername
       //adminPassword: adminPasswordOrKey
       linuxConfiguration: linuxConfiguration
