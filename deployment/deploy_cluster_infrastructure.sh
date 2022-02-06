@@ -18,7 +18,8 @@ function usage() {
 
     Usage: $(basename $0) [Options] args
 
-        $(basename $0) deploys a one node K3s cluster hosted on a VM in Azure. 
+        $(basename $0) deploys a cluster of one or more nodes 
+        optionally behind a load balancer. 
 
     args:
 
@@ -127,7 +128,7 @@ fi
 
 deployment_id=${RANDOM}
 
-write_title "Start Deploying K3s Infrastructure"
+write_title "Start Deploying Cluster Infrastructure"
 start_time=$(date +%s)
 
 # ----- Deploy Bicep
@@ -135,7 +136,7 @@ write_title "Deploy Bicep files"
 r=$(az deployment sub create \
         --name "dep-${deployment_id}" -o json \
         --location ${location} \
-        --template-file ./bicep/k3s-infrastructure.bicep \
+        --template-file ./bicep/cluster-infrastructure.bicep \
         --parameters applicationName=${application_name} \
                      lbDeployment=${lb_deployment} \
                      vmCount=${vm_count} \
@@ -147,7 +148,7 @@ echo $r | jq
 #k3s_cluster_name=$(echo ${r} | jq -r '.properties.outputs.aksName.value') 
 #k3s_cluster_principal_id=$(echo ${r} | jq -r '.properties.outputs.clusterPrincipalID.value') 
 resource_group_name=$(echo ${r} | jq -r '.properties.outputs.resourceGroupName.value')
-k3s_cluster_fqdn=$(echo ${r} | jq -r '.properties.outputs.k3sClusterFqdn.value')
+cluster_fqdn=$(echo ${r} | jq -r '.properties.outputs.clusterFqdn.value')
 
 # ----- TODO: modify
 #write_title("Get K3s Credentials")
