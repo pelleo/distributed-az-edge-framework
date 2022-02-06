@@ -7,12 +7,15 @@ targetScope = 'subscription'
 @description('The common name for this application')
 param applicationName string
 
+@description('Resource prefix for Azure resource group and its resources')
+param resourcePrefix string = applicationName
+
 @description('Load balancer: yes/no')
 param lbDeployment string
 
-var applicationNameWithoutDashes = '${replace(applicationName,'-','')}'
-var resourceGroupName = 'rg-k3s-${applicationNameWithoutDashes}'
+//var applicationNameWithoutDashes = '${replace(applicationName,'-','')}'
 //var k3sName = '${take('k3s-${applicationNameWithoutDashes}',20)}'
+var resourceGroupName = 'rg-${resourcePrefix}'
 
 @description('Location of resources')
 @allowed([
@@ -76,26 +79,30 @@ param linuxAdminUsername string = 'adminuser'
 //@secure()
 param sshRSAPublicKey string = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC8RNrV7L0MvmkqTi8BELkTx6zb0BwNOo+sqorHRd/XdJj/bnEcVBKTcfVFxYYwljtqhKTUUGzAubRNpcFQkQ+uv8fRdEvjDJnIetk1nDXt7bGp5ZWW4t1dUbdmFSMYa4xUC4d6cwKn6c7Ft4D2zZLkJ2w9iz9LHyno8d+X3xYwUdsuJEUy+3SDvdUoigen5tsxSVXkveNYlitETgASyswxEq22FhEwhdeOu7RtCyL8sLClXyax2RJM/fkd9k2UPhqClXSR0CQZ+LVwo9ak5jTkW0iwokXq2YBaXsiGTIFP4OLVEU+tvGAvewgJxTN6+yykCkjqKR0I57lc6zTCWUdCjcoRkUwel/16MR4vo7b2BqGv2/QJMWx9TqXDH4EqhvcKXwaWMTfmgCbdEGDlZ0di4maLztHm19opVY+UpQxh/mutOnrPYVeQfaKiNOImLXdISDvU3n6hBH/JDHl3iTID+KPZEm/ao4JUoc3sLfaD/QDrqDBKCp1thLJjhMkDP52f+IexNVqfBTlrDTW1Exuq0w0jrVA7firvBaW6/fB6lz70F46CT0y47k2ttV1ChknALlf9s+4czRSRY1qzCidIuF5epIumbKHR2kMrTF5XUV6X3/z1yRRCHJKMq4ibMfN/1zErCeh47EFynrA9E5/7wNUV4GfhcpIMgi14IPh0PQ== pelleo@pelleopc'
 param cloudInitScriptUri string
-param k3sDnsLabelPrefix string = 'k3s'
-param k3sDnsLabelPrefixOutbound string = 'k3s-outbound'
+
+@description('DNS label of external IP address')
+param dnsLabelPrefix string = resourcePrefix
+
+@description('DNS label of external IP address (outbound load balancer NAT)')
+param dnsLabelPrefixOutbound string = '${resourcePrefix}-outbound'
 
 // VM info
 @description('The name of the Virtual Machine.')
-param vmNamePrefix string = 'k3s-host'
-param networkInterfaceNamePrefix string = 'k3s-nic'
+param vmNamePrefix string = '${resourcePrefix}-host'
+param networkInterfaceNamePrefix string = '${resourcePrefix}nic'
 
 param vmCount int
 @description('Size of virtual machine.')
 param vmSize string = 'standard_d4s_v3'
 
 // Load balancer info
-param lbName string  = 'k3s-lb'
+param lbName string  = '${resourcePrefix}-lb'
 
 // Storage info
 @minLength(3)
 @maxLength(63)
 @description('Name of file share.  Must be between 3 and 63 characters long.')
-param fileShareName string = 'k3s'
+param fileShareName string = resourcePrefix
 
 @allowed([
   'SMB'
@@ -105,7 +112,7 @@ param fileShareName string = 'k3s'
 param fileShareType string = 'SMB'
 
 @description('Storage account prefix')
-param storageAccountNamePrefix string = 'k3sstore'
+param storageAccountNamePrefix string = '${resourcePrefix}store'
 
 param tags object = {
   owner: 'user@contoso.com'
@@ -121,7 +128,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2020-10-01' = {
 }
 
 module k3s 'modules/k3s.bicep' = {
-  name: 'k3sDeployment'
+  name: '${resourcePrefix}Deployment'
   scope: resourceGroup(rg.name)
   params: {
     location: location
@@ -136,8 +143,8 @@ module k3s 'modules/k3s.bicep' = {
     environmentType: environmentType
     linuxAdminUsername: linuxAdminUsername
     sshRSAPublicKey: sshRSAPublicKey
-    k3sDnsLabelPrefix: k3sDnsLabelPrefix
-    k3sDnsLabelPrefixOutbound : k3sDnsLabelPrefixOutbound 
+    k3sDnsLabelPrefix: dnsLabelPrefix
+    k3sDnsLabelPrefixOutbound : dnsLabelPrefixOutbound 
     cloudInitScriptUri: cloudInitScriptUri
     lbDeployment: lbDeployment
     tags: tags
@@ -147,5 +154,5 @@ module k3s 'modules/k3s.bicep' = {
 // TODO: modify
 //output aksName string = aks.outputs.aksName
 //output clusterPrincipalID string = aks.outputs.clusterPrincipalID
-output k3sClusterFqdn string = k3s.outputs.fqdn
+output clusterFqdn string = k3s.outputs.fqdn
 output resourceGroupName string = rg.name

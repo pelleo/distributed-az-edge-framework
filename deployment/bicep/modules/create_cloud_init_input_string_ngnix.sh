@@ -24,8 +24,8 @@ write_files:
           proxy_cache_bypass \$http_upgrade;
         }
       }
-  - owner: azureuser:azureuser
-  - path: /home/azureuser/myapp/index.js
+  - owner: ${LINUX_ADMIN_USERNAME}:${LINUX_ADMIN_USERNAME}
+  - path: /home/${LINUX_ADMIN_USERNAME}/myapp/index.js
     content: |
       var express = require('express')
       var app = express()
@@ -38,7 +38,7 @@ write_files:
       })
 runcmd:
   - service nginx restart
-  - cd "/home/azureuser/myapp"
+  - cd "/home/${LINUX_ADMIN_USERNAME}/myapp"
   - npm init
   - npm install express -y
   - nodejs index.js
