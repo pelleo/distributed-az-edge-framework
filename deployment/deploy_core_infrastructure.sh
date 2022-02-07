@@ -128,7 +128,7 @@ aks_cluster_principal_id=$(echo ${r} | jq -r '.properties.outputs.clusterPrincip
 resource_group_name=$(echo ${r} | jq -r '.properties.outputs.resourceGroupName.value') 
 
 # ----- Get Cluster Credentials
-write_title("Get AKS Credentials")
+write_title "Get AKS Credentials"
 az aks get-credentials --admin --name $aks_cluster_name --resource-group $resource_group_name --overwrite-existing
 
 # ----- Connect AKS to Arc -----

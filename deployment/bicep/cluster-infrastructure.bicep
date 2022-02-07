@@ -13,9 +13,10 @@ param resourcePrefix string = applicationName
 @description('Load balancer: yes/no')
 param lbDeployment string
 
-//var applicationNameWithoutDashes = '${replace(applicationName,'-','')}'
-//var k3sName = '${take('k3s-${applicationNameWithoutDashes}',20)}'
-var resourceGroupName = 'rg-${resourcePrefix}'
+var applicationNameWithoutDashes = '${replace(applicationName,'-','')}'
+var k3sName = '${take('k3s-${applicationNameWithoutDashes}',20)}'
+//var resourceGroupName = 'rg-${resourcePrefix}'
+var resourceGroupName = 'rg-${applicationNameWithoutDashes}'
 
 @description('Location of resources')
 @allowed([
@@ -147,7 +148,7 @@ module cluster 'modules/cluster.bicep' = {
 }
 
 // TODO: modify
-//output aksName string = aks.outputs.aksName
+output k3sName string = k3sName
 //output clusterPrincipalID string = aks.outputs.clusterPrincipalID
 output clusterFqdn string = cluster.outputs.fqdn
 output resourceGroupName string = rg.name

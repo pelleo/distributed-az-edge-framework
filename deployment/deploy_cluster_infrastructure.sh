@@ -105,8 +105,7 @@ shift $((OPTIND - 1))
 location=${location:=westeurope}
 lb_deployment=${lb_deployment:=no}
 vm_count=${vm_count:=1}
-cloud_init_script_uri=${cloud_init_script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/bicep/modules/create_cloud_init_input_string_bicep.sh}
-
+cloud_init_script_uri=${cloud_init_script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/ci/create_argocd_ci_config.sh}
 # One mandatory argument.
 if [[ $# -eq 1 ]]; then 
     application_name=$1
