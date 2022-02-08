@@ -51,7 +51,7 @@ param lbDeployment string
 var nsgName = '${resourcePrefix}-nsg'
 
 @description('Name of virtual network')
-var vnetName  = '${resourcePrefix}vnet'
+var vnetName  = '${resourcePrefix}-vnet'
 
 @description('Address space of virtual network')
 var vnetAddressPrefix = '10.1.0.0/16'
