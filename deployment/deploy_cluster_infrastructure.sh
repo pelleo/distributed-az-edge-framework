@@ -105,7 +105,8 @@ shift $((OPTIND - 1))
 location=${location:=westeurope}
 lb_deployment=${lb_deployment:=no}
 vm_count=${vm_count:=1}
-cloud_init_script_uri=${cloud_init_script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/ci/create_argocd_ci_config.sh}
+#cloud_init_script_uri=${cloud_init_script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/ci/create_argocd_ci_config.sh}
+cloud_init_script_uri=${cloud_init_script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/ci/create_ccm_ci_config.sh}
 # One mandatory argument.
 if [[ $# -eq 1 ]]; then 
     application_name=$1
@@ -129,6 +130,10 @@ deployment_id=${RANDOM}
 
 write_title "Start Deploying Cluster Infrastructure"
 start_time=$(date +%s)
+
+# ----- Upgrade Bicep
+write_title "Upgrade Bicep"
+az bicep upgrade
 
 # ----- Deploy Bicep
 write_title "Deploy Bicep files"

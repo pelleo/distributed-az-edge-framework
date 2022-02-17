@@ -142,7 +142,7 @@ az provider register --namespace Microsoft.KubernetesConfiguration --wait
 az provider register --namespace Microsoft.ExtendedLocation --wait
 
 # TODO: Add wait loop here to complete the registration of above extensions.
-az connectedk8s connect --name ${aks_cluster_name} --resource-group ${resource_group_name}
+#az connectedk8s connect --name ${aks_cluster_name} --resource-group ${resource_group_name}
 
 export RESOURCEGROUPNAME=${resource_group_name}
 export AKSCLUSTERPRINCIPALID=${aks_cluster_principal_id}

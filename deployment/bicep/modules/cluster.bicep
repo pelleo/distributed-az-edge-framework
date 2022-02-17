@@ -585,7 +585,7 @@ resource miCustomRoleAssign 'Microsoft.Authorization/roleAssignments@2020-04-01-
 
 resource generateCloudInitDeploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'createCloudInit'
-  location: resourceGroup().location
+  location: location
   kind: 'AzureCLI'
   identity: {
     type: 'UserAssigned'
