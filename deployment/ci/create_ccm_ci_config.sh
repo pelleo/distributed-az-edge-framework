@@ -12,7 +12,7 @@ output: {all: '| tee -a /var/log/cloud-init-output.log'}
 runcmd:
   - curl ${RANCHER_DOCKER_INSTALL_URL} | sh
   - usermod -aG docker ${LINUX_ADMIN_USERNAME}
-  - curl -sfL https://get.k3s.io | sh -s - server --tls-san ${HOST_IP_ADDRESS_OR_FQDN} --write-kubeconfig-mode 644 --disable-cloud-controller --no-deploy servicelb --kubelet-arg="cloud-provider=external"
+  - curl -sfL https://get.k3s.io | sh -s - server --tls-san ${HOST_IP_ADDRESS_OR_FQDN} --write-kubeconfig-mode 644
   - ufw allow 6443/tcp
   - ufw allow 443/tcp
   - cp /var/lib/rancher/k3s/server/node-token /home/${LINUX_ADMIN_USERNAME}/node-token
@@ -23,6 +23,10 @@ runcmd:
   - mkdir -p /home/${LINUX_ADMIN_USERNAME}/.kube
   - cp /etc/rancher/k3s/k3s.yaml /home/${LINUX_ADMIN_USERNAME}/.kube/config
   - chown -R ${LINUX_ADMIN_USERNAME}:${LINUX_ADMIN_USERNAME} /home/${LINUX_ADMIN_USERNAME}/.kube
+  - mkdir -p /etc/kubernetes
+  - chmod 777 /etc/kubernetes
+  - mkdir -p /var/lib/waagent/ManagedIdentity-Settings
+  - chmod 777 /var/lib/waagent/ManagedIdentity-Settings
 EOSTR
 )
 

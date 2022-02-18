@@ -463,6 +463,9 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' =  [for i in range(0,
   name: '${vmNamePrefix}${(i + 1)}'
   location: location
   tags: tags
+  // identity: {
+  //   type: 'SystemAssigned'
+  // }
   properties: {
     hardwareProfile: {
       vmSize: vmSize
