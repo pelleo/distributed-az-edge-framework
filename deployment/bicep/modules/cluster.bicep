@@ -138,9 +138,20 @@ var argocdReleaseName = 'argocd-demo'
 // TO BE REMOVED
 var sourceIP = '81.229.112.35'
 
-var vmPublicIpConfig = (vmPublicIp == 'yes') ? {
-  id: publicIPAddress.id
-} : {}
+var vmIpConfig = (vmPublicIp == 'yes') ? {
+  subnet: {
+    id: subnetRef
+  }
+  privateIPAllocationMethod: 'Dynamic'
+  publicIPAddress: {
+    id: publicIPAddress.id
+  }
+} : {
+  subnet: {
+    id: subnetRef
+  }
+  privateIPAllocationMethod: 'Dynamic'
+}
 
 var nicIpConfig = (lbDeployment == 'yes') ? {
   name: 'lbIpConfig'
@@ -152,19 +163,9 @@ var nicIpConfig = (lbDeployment == 'yes') ? {
     loadBalancerBackendAddressPools: lb.properties.backendAddressPools
   }
 } : {
-  name: 'vmIpConfig1'
-  properties: {
-    subnet: {
-      id: subnetRef
-    }
-    privateIPAllocationMethod: 'Dynamic'
-    //publicIPAddress: {
-    //  id: publicIPAddress.id
-    //}
-    publicIPAddress: vmPublicIpConfig
-  }
+  name: 'vmIpConfig'
+  properties: vmIpConfig
 }
-
 
 // Create virtual network
 resource vnet 'Microsoft.Network/virtualNetworks@2021-03-01' = {
