@@ -148,7 +148,7 @@ r=$(az deployment sub create \
         --template-file ./bicep/cluster-infrastructure.bicep \
         --parameters applicationName=${application_name} \
                      lbDeployment=${lb_deployment} \
-                     vmPublicIp=${vm_public_ip}
+                     vmPublicIp=${vm_public_ip} \
                      vmCount=${vm_count} \
                      cloudInitScriptUri=${cloud_init_script_uri})
 
