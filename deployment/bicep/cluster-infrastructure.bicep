@@ -10,8 +10,11 @@ param applicationName string
 @description('Resource prefix for Azure resource group and its resources')
 param resourcePrefix string = applicationName
 
-@description('Load balancer: yes/no')
+@description('Load balancer (yes/no)')
 param lbDeployment string
+
+@description('Virtual machine has public IP address (yes/no)')
+param vmPublicIp string
 
 var applicationNameWithoutDashes = '${replace(applicationName,'-','')}'
 var k3sName = '${take('k3s-${applicationNameWithoutDashes}',20)}'
@@ -143,6 +146,7 @@ module cluster 'modules/cluster.bicep' = {
     dnsLabelPrefixOutbound : dnsLabelPrefixOutbound 
     cloudInitScriptUri: cloudInitScriptUri
     lbDeployment: lbDeployment
+    vmPublicIp: vmPublicIp
     tags: tags
   }
 }

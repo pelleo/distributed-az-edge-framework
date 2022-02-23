@@ -47,6 +47,12 @@ param tags object
 ])
 param lbDeployment string
 
+@allowed([
+  'yes'
+  'no'
+])
+param vmPublicIp string
+
 @description('Name of network security group')
 var nsgName = '${resourcePrefix}-nsg'
 
@@ -132,6 +138,10 @@ var argocdReleaseName = 'argocd-demo'
 // TO BE REMOVED
 var sourceIP = '81.229.112.35'
 
+var vmPublicIpConfig = (vmPublicIp == 'yes') ? {
+  id: publicIPAddress.id
+} : {}
+
 var nicIpConfig = (lbDeployment == 'yes') ? {
   name: 'lbIpConfig'
   properties: {
@@ -148,9 +158,10 @@ var nicIpConfig = (lbDeployment == 'yes') ? {
       id: subnetRef
     }
     privateIPAllocationMethod: 'Dynamic'
-    publicIPAddress: {
-      id: publicIPAddress.id
-    }
+    //publicIPAddress: {
+    //  id: publicIPAddress.id
+    //}
+    publicIPAddress: vmPublicIpConfig
   }
 }
 

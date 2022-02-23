@@ -29,6 +29,7 @@ function usage() {
     
     -r  Azure region (westeurope)
     -l  Azure load balancer (no)
+    -i  VM public IP (yes)
     -n  Number of cluster nodes (1)
     -u  Cloud-init script URI.  Must point to a public repository
     -h  Print this information
@@ -69,13 +70,16 @@ cd ${work_dir}
 #
 ################################################################
 
-while getopts ":r:l:n:u:h" opt; do
+while getopts ":r:l:i:n:u:h" opt; do
     case ${opt} in
         r)        
             location=${OPTARG}
             ;;
         l)        
             lb_deployment=${OPTARG}
+            ;;
+        i)
+            vm_public_ip=${OPTARG}
             ;;
         n)
             vm_count=${OPTARG}
@@ -104,6 +108,7 @@ shift $((OPTIND - 1))
 # Assign default values to unassigned options.
 location=${location:=westeurope}
 lb_deployment=${lb_deployment:=no}
+vm_public_ip=${vm_public_ip:=yes}
 vm_count=${vm_count:=1}
 #cloud_init_script_uri=${cloud_init_script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/ci/create_argocd_ci_config.sh}
 cloud_init_script_uri=${cloud_init_script_uri:=https://raw.githubusercontent.com/pelleo/distributed-az-edge-framework/k3s/deployment/ci/create_ccm_ci_config.sh}
@@ -143,6 +148,7 @@ r=$(az deployment sub create \
         --template-file ./bicep/cluster-infrastructure.bicep \
         --parameters applicationName=${application_name} \
                      lbDeployment=${lb_deployment} \
+                     vmPublicIp=${vm_public_ip}
                      vmCount=${vm_count} \
                      cloudInitScriptUri=${cloud_init_script_uri})
 
